@@ -38,3 +38,17 @@ class StoreStatus(models.Model):
 
     def __repr__(self) -> str:
         return f"{self.store.store_id} - {self.status} - {self.timestamp_utc}"
+
+
+class Report(models.Model):
+    id = models.CharField(
+        max_length=36, primary_key=True, default=uuid.uuid4, editable=False
+    )
+    report_id = models.CharField(max_length=36, unique=True)
+    report = models.TextField()
+    generated_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=32,
+        default="Running",
+        choices=[("Running", "Running"), ("Complete", "Complete")],
+    )
