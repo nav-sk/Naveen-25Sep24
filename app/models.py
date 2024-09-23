@@ -23,7 +23,7 @@ class StoreHours(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE)
 
     def __repr__(self) -> str:
-        return f"{self.store.store_id} - {self.day_of_week} - {self.start_time} - {self.end_time}"
+        return f"{self.store.store_id} - {self.day_of_week} - {self.start_time_local} - {self.end_time_local}"
 
 
 class StoreStatus(models.Model):
