@@ -3,6 +3,8 @@ import uuid
 
 
 class Store(models.Model):
+    """Model containing save store details"""
+
     id = models.CharField(
         max_length=36, primary_key=True, default=uuid.uuid4, editable=False
     )
@@ -14,6 +16,8 @@ class Store(models.Model):
 
 
 class StoreHours(models.Model):
+    """Model containing store's business hours"""
+
     id = models.CharField(
         max_length=36, primary_key=True, default=uuid.uuid4, editable=False
     )
@@ -27,6 +31,8 @@ class StoreHours(models.Model):
 
 
 class StoreStatus(models.Model):
+    """Model containing store's poll results"""
+
     id = models.CharField(
         max_length=36, primary_key=True, default=uuid.uuid4, editable=False
     )
@@ -41,14 +47,18 @@ class StoreStatus(models.Model):
 
 
 class Report(models.Model):
+    """Model containing the report data"""
     id = models.CharField(
         max_length=36, primary_key=True, default=uuid.uuid4, editable=False
     )
-    report_id = models.CharField(max_length=36, unique=True)
-    report = models.TextField()
+    report_id = models.CharField(max_length=36, unique=True, default=uuid.uuid4)
+    report = models.TextField(blank=True)
     generated_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=32,
         default="Running",
         choices=[("Running", "Running"), ("Complete", "Complete")],
     )
+
+    def __repr__(self) -> str:
+        return f"{self.report_id} - {self.status} - {self.generated_at}"
