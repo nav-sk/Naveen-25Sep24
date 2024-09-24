@@ -38,6 +38,7 @@ def get_report(report_id: str) -> None:
                 # If the report is complete, print the report data
                 if parsed_data["status"] == "Complete":
                     df = pd.read_csv(io.StringIO(parsed_data["report"]))
+                    df.to_csv("report.csv", index=False)
                     print(df)
                     break
                 # If the report is still running, print the time elapsed
