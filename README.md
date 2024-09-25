@@ -13,6 +13,7 @@ This repository contains the implementation of a backend service that generates 
   - [Trigger Report Endpoint](#trigger-report-endpoint)
   - [Get Report Endpoint](#get-report-endpoint)
 - [Data Processing Logic](#data-processing-logic)
+- [Code Structure](#code-structure)
 - [Assumptions](#assumptions)
 - [Improvements](#improvements)
 - [Demo](#demo)
@@ -110,10 +111,10 @@ Once the server is up and running, you can access the following APIs:
   ```
 - Sample Response:
   `json
-  {
-      "report_id": "abc123"
-  }
-  `
+{
+    "report_id": "abc123"
+}
+`
 
 ### Get Report Endpoint
 
@@ -168,6 +169,49 @@ Once the server is up and running, you can access the following APIs:
    - Interpolate the missing status data between timestamps with data
    - Calculate the uptime and downtime based on the active/inactive status.
 4. **Output Generation**: Generate a CSV file with the uptime and downtime data for each store.
+
+## Code Structure
+
+```text
+.
+├── README.md
+├── app
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── background
+│   │   ├── celery.py
+│   │   ├── params.py
+│   │   ├── task_handler.py
+│   │   ├── task_signal.py
+│   │   └── tasks.py
+│   ├── migrations
+│   │   ├── 0001_initial.py
+│   │   ├── 0002_load_data.py
+│   │   ├── 0003_report.py
+│   │   ├── 0004_alter_report_report.py
+│   │   └── __init__.py
+│   ├── models.py
+│   ├── serializers.py
+│   ├── services.py
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+├── config
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── data
+│   ├── store_hours.csv
+│   ├── store_status.csv
+│   └── store_timezones.csv
+├── manage.py
+├── report.csv
+├── requirements.txt
+└── test.py
+```
 
 ## Assumptions
 
