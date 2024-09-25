@@ -225,7 +225,7 @@ Once the server is up and running, you can access the following APIs:
 
 ## Demo
 
-A brief demo of the system can be found [here](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
+A brief demo of the system can be found [here](https://drive.google.com/file/d/1SphijZIYT6xqq15zH83b5sPSkYUpKkQn/view?usp=sharing).
 
 ## Output
 
