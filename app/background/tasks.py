@@ -14,15 +14,15 @@ def get_day_of_week(datetime: datetime.datetime) -> int:
     return datetime.weekday()
 
 
-def local_to_utc(
+def local_time_to_utc_datetime(
     local_time: datetime.time, timezone: str, utc_time_for_date: datetime.datetime
-) -> datetime.time:
+) -> datetime.datetime:
     local_timezone = pytz.timezone(timezone)
-    local_time = local_timezone.localize(
+    local_date_time = local_timezone.localize(
         datetime.datetime.combine(utc_time_for_date.date(), local_time)
     )
-    utc_time = local_time.astimezone(pytz.utc)
-    return utc_time.time()
+    utc_datetime = local_date_time.astimezone(pytz.utc)
+    return utc_datetime
 
 
 def build_report_data_for_store(
@@ -65,8 +65,12 @@ def build_report_data_for_store(
         ]
         # converting the local start and end time to utc
         # as the status timestamps are in utc
-        start_time_utc = local_to_utc(start_time_local, store_timezone, each_day[0][0])
-        end_time_utc = local_to_utc(end_time_local, store_timezone, each_day[0][0])
+        start_time_utc = local_time_to_utc_datetime(
+            start_time_local, store_timezone, each_day[0][0]
+        )
+        end_time_utc = local_time_to_utc_datetime(
+            end_time_local, store_timezone, each_day[0][0]
+        )
         # filtering the statuses based on the start and end time of the store
         # in order to consider only the statuses during the business hours
         filtered_business_hours = list(
@@ -131,7 +135,7 @@ def build_report_data_for_store(
     for key in count_dict.keys():
         if "hour" not in key:
             count_dict[key] //= 60
-            count_dict[key] = int(count_dict[key])
+        count_dict[key] = int(count_dict[key])
 
     count_dict["store_id"] = store_id
     # declaring the final store_data for returning
