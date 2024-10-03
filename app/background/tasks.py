@@ -25,13 +25,91 @@ def local_time_to_utc_datetime(
     return utc_datetime
 
 
+def update_count_last_hour(
+    count_dict: Mapping[str, int],
+    status: str,
+    last_updated_timestamp: datetime.datetime,
+    previous_timestamp: datetime.datetime,
+    current_timestamp: datetime.datetime,
+) -> None:
+    if previous_timestamp >= last_updated_timestamp - datetime.timedelta(hours=1):
+        # clamp the previous_timestamp for the last hour
+        previous_timestamp = max(
+            previous_timestamp, last_updated_timestamp - datetime.timedelta(hours=1)
+        )
+        # clamp the current_timestamp with the last updated timestamp
+        current_timestamp = min(current_timestamp, last_updated_timestamp)
+        if previous_timestamp > current_timestamp:
+            return
+        if status == "active":
+            count_dict["uptime_last_hour"] += (
+                current_timestamp - previous_timestamp
+            ).total_seconds()
+        else:
+            count_dict["downtime_last_hour"] += (
+                current_timestamp - previous_timestamp
+            ).total_seconds()
+
+
+def update_count_last_day(
+    count_dict: Mapping[str, int],
+    status: str,
+    last_updated_timestamp: datetime.datetime,
+    previous_timestamp: datetime.datetime,
+    current_timestamp: datetime.datetime,
+) -> None:
+    if previous_timestamp >= last_updated_timestamp - datetime.timedelta(days=1):
+        # clamp the previous_timestamp for the last day
+        previous_timestamp = max(
+            previous_timestamp, last_updated_timestamp - datetime.timedelta(days=1)
+        )
+        # clamp the current_timestamp with the last updated timestamp
+        current_timestamp = min(current_timestamp, last_updated_timestamp)
+        if previous_timestamp > current_timestamp:
+            return
+        if status == "active":
+            count_dict["uptime_last_day"] += (
+                current_timestamp - previous_timestamp
+            ).total_seconds()
+        else:
+            count_dict["downtime_last_day"] += (
+                current_timestamp - previous_timestamp
+            ).total_seconds()
+
+
+def update_count_last_week(
+    count_dict: Mapping[str, int],
+    status: str,
+    last_updated_timestamp: datetime.datetime,
+    previous_timestamp: datetime.datetime,
+    current_timestamp: datetime.datetime,
+) -> None:
+    if previous_timestamp >= last_updated_timestamp - datetime.timedelta(days=7):
+        # clamp the previous_timestamp for the last week
+        previous_timestamp = max(
+            previous_timestamp, last_updated_timestamp - datetime.timedelta(days=7)
+        )
+        # clamp the current_timestamp with the last updated timestamp
+        current_timestamp = min(current_timestamp, last_updated_timestamp)
+        if previous_timestamp > current_timestamp:
+            return
+        if status == "active":
+            count_dict["uptime_last_week"] += (
+                current_timestamp - previous_timestamp
+            ).total_seconds()
+        else:
+            count_dict["downtime_last_week"] += (
+                current_timestamp - previous_timestamp
+            ).total_seconds()
+
+
 def build_report_data_for_store(
     store_id: str,
     store_statuses: List[Tuple[datetime.datetime, Literal["active", "inactive"]]],
     store_hours: List[Tuple[datetime.time, datetime.time]],
     store_timezone: str,
     last_updated_timestamp: datetime.datetime,
-):
+) -> Mapping[str, int]:
     # Dividing the statuses of a store into each day based on the timestamp
     # status_per_days = [[(timestamp, status), ...], ...]
     status_per_days: List[
@@ -95,46 +173,50 @@ def build_report_data_for_store(
             index=list(zip(*all_time_intervals_of_business_hours))[0],
         )
         # interpolate the data to fill the missing values
-        interpolated_data = data.fillna(method="ffill")
-        interpolated_data = interpolated_data.fillna(method="bfill")
+        interpolated_data = data.ffill()
+        interpolated_data = interpolated_data.bfill()
         # calculate the uptime and downtime based on the interpolated data
         # set the last status as None
-        last = None
+        previous_timestamp = None
         for current_timestamp, active_status in interpolated_data.to_dict().items():
             # if the last status is None, update the last status as the current timestamp
-            if last == None:
-                last = current_timestamp
+            if previous_timestamp == None:
+                previous_timestamp = current_timestamp
                 continue
-            # calculate the difference in minutes between the statuses
-            difference_in_minutes = (current_timestamp - last).total_seconds() // 60
             # since the data is only for the past week, we are considering only the statuses for the past week
-            if active_status == "active":
-                count_dict["uptime_last_week"] += difference_in_minutes
-            else:
-                count_dict["downtime_last_week"] += difference_in_minutes
-            # based on the timestamp calculate the uptime and downtime for last hour
-            if last_updated_timestamp - current_timestamp <= datetime.timedelta(
-                hours=1
-            ):
-                if active_status == "active":
-                    count_dict["uptime_last_hour"] += difference_in_minutes
-                else:
-                    count_dict["downtime_last_hour"] += difference_in_minutes
-            # based on the timestamp calculate the uptime and downtime for last day
-            if last_updated_timestamp - current_timestamp <= datetime.timedelta(days=1):
-                if active_status == "active":
-                    count_dict["uptime_last_day"] += difference_in_minutes
-                else:
-                    count_dict["downtime_last_day"] += difference_in_minutes
+            update_count_last_hour(
+                count_dict=count_dict,
+                status=active_status,
+                last_updated_timestamp=last_updated_timestamp,
+                previous_timestamp=previous_timestamp,
+                current_timestamp=current_timestamp,
+            )
+            update_count_last_day(
+                count_dict=count_dict,
+                status=active_status,
+                last_updated_timestamp=last_updated_timestamp,
+                previous_timestamp=previous_timestamp,
+                current_timestamp=current_timestamp,
+            )
+            update_count_last_week(
+                count_dict=count_dict,
+                status=active_status,
+                last_updated_timestamp=last_updated_timestamp,
+                previous_timestamp=previous_timestamp,
+                current_timestamp=current_timestamp,
+            )
             # update the last timestamp
-            last = current_timestamp
+            previous_timestamp = current_timestamp
             # if the last timestamp is greater than the last updated timestamp, break the loop
-            if last > last_updated_timestamp:
+            if previous_timestamp > last_updated_timestamp:
                 break
     # convert the uptime and downtime for last_day and last_week to hours
     for key in count_dict.keys():
-        if "hour" not in key:
-            count_dict[key] //= 60
+        count_dict[key] //= 60  # converting to minutes
+        if "last_hour" not in key:
+            count_dict[
+                key
+            ] //= 60  # converting to hours (only for last_day and last_week)
         count_dict[key] = int(count_dict[key])
 
     count_dict["store_id"] = store_id
@@ -143,7 +225,7 @@ def build_report_data_for_store(
     return store_data
 
 
-def generate_csv_from_dict(data: List[dict]):
+def generate_csv_from_dict(data: List[dict]) -> str:
     df = pd.DataFrame(data)
     # reordering the columns
     df = df[
@@ -171,15 +253,7 @@ def generate_csv_from_dict(data: List[dict]):
     return df.to_csv(index=False, header=True)
 
 
-@app.task(bind=True)
-def generate_report(self, *args, **kwargs):
-    # getting the report ID from the task params
-    task_params = TaskParams(**kwargs)
-    report_id = task_params.report_id
-    print("-" * 50)
-    print("Generating Report : ", report_id)
-    print("-" * 50)
-    report = Report.objects.get(report_id=report_id)
+def build_complete_report() -> str:
     # getting the last updated timestamp in the db
     last_updated_timestamp = (
         StoreStatus.objects.order_by("-timestamp_utc").first().timestamp_utc
@@ -242,6 +316,19 @@ def generate_report(self, *args, **kwargs):
 
     # generate csv from the report data
     csv_data: str = generate_csv_from_dict(report_data)
+    return csv_data
+
+
+@app.task(bind=True)
+def generate_report(self, *args, **kwargs) -> None:
+    # getting the report ID from the task params
+    task_params = TaskParams(**kwargs)
+    report_id = task_params.report_id
+    print("-" * 50)
+    print("Generating Report : ", report_id)
+    print("-" * 50)
+    report = Report.objects.get(report_id=report_id)
+    csv_data = build_complete_report()
     report.report = csv_data
     report.status = "Complete"
     report.save()  # saving to db
